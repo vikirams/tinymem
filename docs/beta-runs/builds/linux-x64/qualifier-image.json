@@ -1,0 +1,58 @@
+[
+    {
+        "Id": "sha256:aba94e44825b68ab7dc3bb2845f7b213b3166ce4f7685b67489e53d6b9db2f13",
+        "RepoTags": [
+            "tinymem-beta-qualifier:local"
+        ],
+        "RepoDigests": [],
+        "Comment": "buildkit.dockerfile.v0",
+        "Created": "2026-10-02T07:12:12.592832713Z",
+        "Config": {
+            "Env": [
+                "PATH=/opt/pi/node_modules/.bin:/usr/local/cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "RUSTUP_HOME=/usr/local/rustup",
+                "CARGO_HOME=/usr/local/cargo",
+                "RUST_VERSION=1.93.1",
+                "PI_OFFLINE=1",
+                "PI_SKIP_VERSION_CHECK=1",
+                "PI_TELEMETRY=0",
+                "TINYMEM_PI_BIN=/opt/pi/node_modules/.bin/pi",
+                "TINYMEM_PI_MODULE=/opt/pi/node_modules/@earendil-works/pi-coding-agent/dist/index.js"
+            ],
+            "Cmd": [
+                "bash"
+            ],
+            "WorkingDir": "/work",
+            "Labels": {
+                "org.opencontainers.image.source": "https://github.com/rust-lang/docker-rust"
+            }
+        },
+        "Architecture": "amd64",
+        "Os": "linux",
+        "Size": 1219754396,
+        "GraphDriver": {
+            "Data": {
+                "LowerDir": "/var/lib/docker/overlay2/vpe26ke2yy0q4gfl64ebjedot/diff:/var/lib/docker/overlay2/l0ah182s54zwqb1tiftvfl1ik/diff:/var/lib/docker/overlay2/lb9j91w2nchj7k570huk73y2h/diff:/var/lib/docker/overlay2/ydm2zndu1gm73239stueml4e0/diff:/var/lib/docker/overlay2/94ae1ad46fe22989dc98e461012759b63403054b911124cc12a466932d76197c/diff:/var/lib/docker/overlay2/40225d63d7340fe3ee48fef51763a5c6d8269d85d4aa8f8180874a985e7cc414/diff",
+                "MergedDir": "/var/lib/docker/overlay2/csi075i8mxbpueb156wpipr88/merged",
+                "UpperDir": "/var/lib/docker/overlay2/csi075i8mxbpueb156wpipr88/diff",
+                "WorkDir": "/var/lib/docker/overlay2/csi075i8mxbpueb156wpipr88/work"
+            },
+            "Name": "overlay2"
+        },
+        "RootFS": {
+            "Type": "layers",
+            "Layers": [
+                "sha256:9eb9a78eeb101ab215acf43ffb2a709d5fca9ca2a22178564c7ee5cc30774c60",
+                "sha256:a17bd33ba0936eadb507558917580e89a07d3890df0487eed154f51e20a2e96d",
+                "sha256:1f58953930cbd6190a9eca6f3de86f0450b3fb6a5d24026b62c019bc12560ade",
+                "sha256:3d5d036ff0a0a270d643d6aca69ff926f14a5515f09db06c3f8b2c57c967fb8c",
+                "sha256:39844cbb84b8cf74ed203f0ca91aa01643fc01361efb859a8038cd8485c93083",
+                "sha256:3fc8e5b68329a0cb1260f63de584ff9e755b0d3838d0a3b1a1922fe5f41e4014",
+                "sha256:4ae0186a142120691dac0c52d86176d3a8ffaa272551a6dde599dbed03cb48da"
+            ]
+        },
+        "Metadata": {
+            "LastTagTime": "2026-10-02T12:14:35.789496674Z"
+        }
+    }
+]

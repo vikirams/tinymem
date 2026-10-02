@@ -1,0 +1,49 @@
+name: Beta release
+
+# Attaches the exact prebuilt 0.1.0-beta.1 archives to the tag release.
+# scripts/release.mjs only writes a local directory; this workflow does not
+# rebuild archives (builder host/toolchain fields would differ). It verifies
+# and publishes the exact files committed under dist/beta/0.1.0-beta.1/.
+# sourceDigest is a canonical input-inventory hash, not a Git commit id.
+
+on:
+  push:
+    tags:
+      - "0.1.0-beta.*"
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+      - name: Verify committed beta archives against SHA256SUMS
+        run: |
+          set -eu
+          for target in aarch64-apple-darwin x86_64-unknown-linux-gnu; do
+            dir="dist/beta/0.1.0-beta.1/${target}"
+            test -f "${dir}/release-manifest.json"
+            test -f "${dir}/SHA256SUMS"
+            (cd "${dir}" && sha256sum -c SHA256SUMS)
+          done
+          echo "sourceDigest (both targets must agree):"
+          node -e "const m1=require('./dist/beta/0.1.0-beta.1/aarch64-apple-darwin/release-manifest.json');const m2=require('./dist/beta/0.1.0-beta.1/x86_64-unknown-linux-gnu/release-manifest.json');console.log(m1.sourceDigest);if(m1.sourceDigest!==m2.sourceDigest)throw new Error('sourceDigest mismatch')"
+      - name: Attach exact archives to the tag release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/beta/0.1.0-beta.1/aarch64-apple-darwin/tinymem-pi-0.1.0-beta.1-darwin-arm64.tgz
+            dist/beta/0.1.0-beta.1/aarch64-apple-darwin/tinymem-native-0.1.0-beta.1-darwin-arm64.tar.gz
+            dist/beta/0.1.0-beta.1/aarch64-apple-darwin/tinymem-source-0.1.0-beta.1.tar.gz
+            dist/beta/0.1.0-beta.1/aarch64-apple-darwin/release-manifest.json
+            dist/beta/0.1.0-beta.1/aarch64-apple-darwin/SHA256SUMS
+            dist/beta/0.1.0-beta.1/x86_64-unknown-linux-gnu/tinymem-pi-0.1.0-beta.1-linux-x64.tgz
+            dist/beta/0.1.0-beta.1/x86_64-unknown-linux-gnu/tinymem-native-0.1.0-beta.1-linux-x64.tar.gz
+            dist/beta/0.1.0-beta.1/x86_64-unknown-linux-gnu/tinymem-source-0.1.0-beta.1.tar.gz
+            dist/beta/0.1.0-beta.1/x86_64-unknown-linux-gnu/release-manifest.json
+            dist/beta/0.1.0-beta.1/x86_64-unknown-linux-gnu/SHA256SUMS
+          generate_release_notes: false

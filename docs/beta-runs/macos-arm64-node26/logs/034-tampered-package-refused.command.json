@@ -1,0 +1,18 @@
+{
+  "executable": "/Users/apple/.nvm/versions/node/v26.1.0/bin/node",
+  "args": [
+    "/private/var/folders/ct/h12p5ml91d1cqzpzlz5rwq0m0000gn/T/tinymem-pi-beta-2uaO8D/tampered-package/scripts/pi-package.mjs",
+    "install",
+    "--root",
+    "/private/var/folders/ct/h12p5ml91d1cqzpzlz5rwq0m0000gn/T/tinymem-pi-beta-2uaO8D/tampered-project",
+    "--db",
+    "/private/var/folders/ct/h12p5ml91d1cqzpzlz5rwq0m0000gn/T/tinymem-pi-beta-2uaO8D/tampered.db",
+    "--user",
+    "beta-fixture-user",
+    "--project",
+    "beta-fixture-project"
+  ],
+  "cwd": "/private/var/folders/ct/h12p5ml91d1cqzpzlz5rwq0m0000gn/T/tinymem-pi-beta-2uaO8D/tampered-project",
+  "status": 1,
+  "signal": null
+}

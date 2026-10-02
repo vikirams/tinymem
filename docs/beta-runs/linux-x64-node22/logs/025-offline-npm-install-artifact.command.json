@@ -1,0 +1,16 @@
+{
+  "executable": "npm",
+  "args": [
+    "install",
+    "--offline",
+    "--ignore-scripts",
+    "--no-audit",
+    "--no-fund",
+    "--prefix",
+    "/tmp/tinymem-pi-beta-FxacD9/npm-prefix",
+    "/output/build-one/tinymem-pi-0.1.0-beta.1-linux-x64.tgz"
+  ],
+  "cwd": null,
+  "status": 0,
+  "signal": null
+}

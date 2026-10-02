@@ -1,0 +1,11 @@
+{
+  "executable": "/Users/apple/.nvm/versions/node/v26.1.0/bin/node",
+  "args": [
+    "--experimental-strip-types",
+    "--test",
+    "/private/var/folders/ct/h12p5ml91d1cqzpzlz5rwq0m0000gn/T/tinymem-pi-beta-2uaO8D/source-extract/tinymem-source-0.1.0-beta.1/integrations/pi/tests/host.test.mjs"
+  ],
+  "cwd": "/private/var/folders/ct/h12p5ml91d1cqzpzlz5rwq0m0000gn/T/tinymem-pi-beta-2uaO8D/source-extract/tinymem-source-0.1.0-beta.1",
+  "status": 0,
+  "signal": null
+}

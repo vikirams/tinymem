@@ -1,0 +1,20 @@
+{
+  "executable": "/usr/local/bin/node",
+  "args": [
+    "/tmp/tinymem-pi-beta-FxacD9/prior-install-package/scripts/pi-package.mjs",
+    "install",
+    "--root",
+    "/tmp/tinymem-pi-beta-FxacD9/fixture-repository",
+    "--db",
+    "/tmp/tinymem-pi-beta-FxacD9/data/memory.db",
+    "--user",
+    "beta-fixture-user",
+    "--project",
+    "beta-fixture-project",
+    "--agent",
+    "beta-fixture-agent"
+  ],
+  "cwd": "/tmp/tinymem-pi-beta-FxacD9/fixture-repository",
+  "status": 0,
+  "signal": null
+}

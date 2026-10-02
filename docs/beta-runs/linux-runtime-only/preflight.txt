@@ -1,0 +1,11 @@
+runtime: v22.19.0
+npm: 10.9.3
+Pi: 1.0.0
+absent: rustc
+absent: cargo
+absent: cc
+absent: gcc
+absent: clang
+absent: python
+absent: python3
+libc: ldd (Debian GLIBC 2.36-9+deb12u13) 2.36

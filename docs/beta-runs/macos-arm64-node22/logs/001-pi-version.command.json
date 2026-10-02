@@ -1,0 +1,9 @@
+{
+  "executable": "/Users/apple/.nvm/versions/node/v26.1.0/bin/pi",
+  "args": [
+    "--version"
+  ],
+  "cwd": null,
+  "status": 0,
+  "signal": null
+}

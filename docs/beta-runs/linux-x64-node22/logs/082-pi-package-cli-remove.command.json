@@ -1,0 +1,12 @@
+{
+  "executable": "/opt/pi/node_modules/.bin/pi",
+  "args": [
+    "remove",
+    "--local",
+    "/tmp/tinymem-pi-beta-FxacD9/package-extract/package",
+    "--approve"
+  ],
+  "cwd": "/tmp/tinymem-pi-beta-FxacD9/pi-package-cli-project",
+  "status": 0,
+  "signal": null
+}

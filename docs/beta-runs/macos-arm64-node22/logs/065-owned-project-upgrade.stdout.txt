@@ -1,0 +1,14 @@
+{
+  "action": "upgrade",
+  "root": "/private/var/folders/ct/h12p5ml91d1cqzpzlz5rwq0m0000gn/T/tinymem-pi-beta-OAJloq/fixture-repository",
+  "package": "/private/var/folders/ct/h12p5ml91d1cqzpzlz5rwq0m0000gn/T/tinymem-pi-beta-OAJloq/package-extract/package",
+  "binary": "/private/var/folders/ct/h12p5ml91d1cqzpzlz5rwq0m0000gn/T/tinymem-pi-beta-OAJloq/package-extract/package/native/tinymem",
+  "scope": {
+    "db": "/private/var/folders/ct/h12p5ml91d1cqzpzlz5rwq0m0000gn/T/tinymem-pi-beta-OAJloq/data/memory.db",
+    "user": "beta-fixture-user",
+    "project": "beta-fixture-project",
+    "agent": "beta-fixture-agent"
+  },
+  "databaseOpened": false,
+  "dryRun": false
+}

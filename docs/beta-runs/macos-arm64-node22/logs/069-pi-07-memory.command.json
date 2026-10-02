@@ -1,0 +1,21 @@
+{
+  "executable": "/Users/apple/.nvm/versions/node/v26.1.0/bin/pi",
+  "args": [
+    "--mode",
+    "rpc",
+    "--no-session",
+    "--approve",
+    "--no-skills",
+    "--no-prompt-templates",
+    "--no-themes",
+    "--no-context-files",
+    "--extension",
+    "/private/var/folders/ct/h12p5ml91d1cqzpzlz5rwq0m0000gn/T/tinymem-pi-beta-OAJloq/fixture-provider.mjs"
+  ],
+  "cwd": "/private/var/folders/ct/h12p5ml91d1cqzpzlz5rwq0m0000gn/T/tinymem-pi-beta-OAJloq/fixture-repository",
+  "request": {
+    "id": "command-7",
+    "type": "prompt",
+    "message": "/memory delete 5b44ff0aec84fd6490c392ee168e711f 2"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "executable": "/Users/apple/.nvm/versions/node/v26.1.0/bin/pi",
+  "args": [
+    "--mode",
+    "rpc",
+    "--no-session",
+    "--approve",
+    "--no-skills",
+    "--no-prompt-templates",
+    "--no-themes",
+    "--no-context-files",
+    "--extension",
+    "/private/var/folders/ct/h12p5ml91d1cqzpzlz5rwq0m0000gn/T/tinymem-pi-beta-2uaO8D/fixture-provider.mjs"
+  ],
+  "cwd": "/private/var/folders/ct/h12p5ml91d1cqzpzlz5rwq0m0000gn/T/tinymem-pi-beta-2uaO8D/fixture-repository",
+  "request": {
+    "id": "command-3",
+    "type": "prompt",
+    "message": "/memory correct f9981d226f930f0c314a0dc6e4dcebd7 1 beta acceptance marker now requires ISO UTC timestamp notation."
+  }
+}

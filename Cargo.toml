@@ -1,0 +1,7 @@
+[workspace]
+members = ["crates/tinymem-engine"]
+resolver = "2"
+
+[profile.release]
+lto = "thin"
+strip = true

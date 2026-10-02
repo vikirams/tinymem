@@ -1,0 +1,14 @@
+{
+  "action": "install",
+  "root": "/tmp/tinymem-pi-beta-Bowp6D/fixture-repository",
+  "package": "/tmp/tinymem-pi-beta-Bowp6D/prior-install-package",
+  "binary": "/tmp/tinymem-pi-beta-Bowp6D/prior-install-package/native/tinymem",
+  "scope": {
+    "db": "/tmp/tinymem-pi-beta-Bowp6D/data/memory.db",
+    "user": "beta-fixture-user",
+    "project": "beta-fixture-project",
+    "agent": "beta-fixture-agent"
+  },
+  "databaseOpened": false,
+  "dryRun": false
+}

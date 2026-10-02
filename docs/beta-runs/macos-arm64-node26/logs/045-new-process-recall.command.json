@@ -1,0 +1,25 @@
+{
+  "executable": "/Users/apple/.nvm/versions/node/v26.1.0/bin/pi",
+  "args": [
+    "--mode",
+    "rpc",
+    "--no-session",
+    "--approve",
+    "--no-skills",
+    "--no-prompt-templates",
+    "--no-themes",
+    "--no-context-files",
+    "--extension",
+    "/private/var/folders/ct/h12p5ml91d1cqzpzlz5rwq0m0000gn/T/tinymem-pi-beta-2uaO8D/fixture-provider.mjs",
+    "--provider",
+    "tinymem-fixture",
+    "--model",
+    "tinymem-fixture/deterministic"
+  ],
+  "cwd": "/private/var/folders/ct/h12p5ml91d1cqzpzlz5rwq0m0000gn/T/tinymem-pi-beta-2uaO8D/fixture-repository",
+  "request": {
+    "id": "prompt-2",
+    "type": "prompt",
+    "message": "Implement the beta acceptance marker UTC clock change."
+  }
+}
