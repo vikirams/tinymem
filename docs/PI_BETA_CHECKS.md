@@ -20,8 +20,10 @@ node scripts/release.mjs --help
 - `sourceDigest` is a SHA-256 over the canonical release-input inventory
   (`release-manifest.json`: `sourceIdentity: "sha256 of canonical release-input
   inventory (not a git commit)"`). It is **not** a Git commit id.
-- This checkout ships with **no git metadata, no tag, and no release workflow**
-  (see "Publication status"). Do not cite a commit id for this beta.
+- This checkout now has local git metadata: commit `ace4236`, local tag
+  `0.1.0-beta.1`, and workflow `.github/workflows/release-beta.yml`. There is
+  **no remote configured and no published GitHub release**, so there is still no
+  download URL. Do not cite a commit id as the source identity.
 - The `beta-runs/` tree is excluded from the release-source input inventory, so
   adding run logs does not alter the frozen `sourceDigest`.
 - The `sourceDigest` above freezes the pre-announcement doc set. Post-freeze doc
@@ -37,16 +39,20 @@ node scripts/release.mjs --help
 - The exact shippable archives exist only locally at:
   - `dist/beta/0.1.0-beta.1/aarch64-apple-darwin/` (darwin-arm64 set)
   - `dist/beta/0.1.0-beta.1/x86_64-unknown-linux-gnu/` (linux-x64 set)
+  They are force-added to the local tag (`dist/` stays ignored for other build
+  debris). Pushing the tag with no remote configured is still pending.
 - Each set ships 5 files: package tarball (`tinymem-pi-*.tgz`), native archive
   (`tinymem-native-*.tar.gz`), source archive (`tinymem-source-*.tar.gz`),
   `release-manifest.json`, and `SHA256SUMS`. Hashes are recorded per cell below.
 - The install guide currently has **no download URL**. Do not announce the beta
-  as downloadable until tag `0.1.0-beta.1` is pushed and those exact 10 files
-  (5 per target) are attached to the release. Required maintainer steps:
-  1. Put this tree in a repository, commit, and tag `0.1.0-beta.1`.
-  2. Attach the exact archives from `dist/beta/0.1.0-beta.1/` (do not rebuild).
-  3. Add a tag-triggered release workflow (see `.github/workflows/release-beta.yml`)
-     and fill the download URL into `docs/PI_BETA_RELEASE.md` and `README.md`.
+  as downloadable until the tag is pushed and those exact 10 files
+  (5 per target) are attached to the release. Required remaining steps:
+  1. Add a remote, push commit + tag `0.1.0-beta.1`
+     (`git push origin main 0.1.0-beta.1`, or `gh release create 0.1.0-beta.1`
+     with the 10 files below).
+  2. Confirm `.github/workflows/release-beta.yml` attached the exact committed
+     files (it verifies `SHA256SUMS`, never rebuilds).
+  3. Fill the download URL into `docs/PI_BETA_RELEASE.md` and `README.md`.
 - Supported install path is the **downloaded package plus
   `node <package>/scripts/pi-package.mjs install ...`**, not `pi install`. The
   harness exercises real `pi install/list/remove` only as a separate package-manager
