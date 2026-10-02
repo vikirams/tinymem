@@ -12,7 +12,7 @@ The first beta of this product is `0.2.0-beta.1`. The working tree currently say
 
 ## What is true now
 
-`HEAD` is still the withdrawn Rust beta. The working tree deletes that tree and is not committed. `git checkout` would bring the Rust product back. Nothing in this rewrite is on a remote.
+`HEAD` is `12dba07`, the Python rewrite commit on top of the withdrawn Rust beta (`43c5398`). Nothing is on a remote.
 
 What runs today:
 
@@ -29,8 +29,8 @@ What runs today:
 What is not true:
 
 - No Pi agent tool-call round-trip is recorded. `pi mcp list` is `connected`, but no Pi-driven add/search/update/delete exists (provider blocked at check time). Other agents are config-written only.
-- No commit yet. The rewrite (Rust deletions plus the new Python tree) is uncommitted. `git checkout` would bring the Rust product back. Nothing in this rewrite is on a remote.
-- The database `~/.tinymem/tinymem.db` holds project namespaces including prior notes (1 active row in `tinymem` at last check).
+- Committed locally as `12dba07` (not amended onto `43c5398`, tag `0.1.0-beta.1` not pushed). No remote configured.
+- The database `~/.tinymem/tinymem.db` holds project namespaces including prior notes.
 
 ## What beta means
 
@@ -72,7 +72,7 @@ All of these are required before the tree may say `0.2.0-beta.1`. Gates 1-6 are 
 3. DONE: README with refusals. Version stays `0.2.0-dev`.
 4. DONE: re-ran connect here; `TINYMEM_NAMESPACE=tinymem` in all five configs.
 5. PARTIAL: suite is 26 green; installed-command stdio qualification recorded in `docs/BETA_CHECKS.md`. Pi agent tool-call still pending (provider blocked). Do NOT set `0.2.0-beta.1` yet.
-6. Commit the rewrite as a new commit on `main`. Do not amend `43c5398`. Do not push `0.1.0-beta.1`.
+6. DONE: committed as `12dba07`. Did not amend `43c5398`. Did not push `0.1.0-beta.1`.
 
 Published beta (PyPI or a GitHub release asset) is a later plan. It starts only after this local beta exists, and only with a URL that serves the file the docs name.
 
