@@ -299,6 +299,20 @@ class ProtocolTests(unittest.TestCase):
         found = self.store.search("concurrent", namespace="proj-a")
         self.assertEqual(len(found["memories"]), 2)
 
+    def test_simultaneous_cold_start_open(self) -> None:
+        db_path = str(Path(self.directory.name) / "cold.db")
+        script = (
+            "from pathlib import Path; from tinymem.store import Store;"
+            " s=Store(Path(%r)); s.add('Cold start note', namespace='proj-a'); s.close()"
+        ) % db_path
+        procs = [
+            subprocess.Popen([sys.executable, "-c", script], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            for _ in range(6)
+        ]
+        for proc in procs:
+            _, stderr = proc.communicate(timeout=15)
+            self.assertEqual(proc.returncode, 0, stderr)
+
     def test_older_protocol_omits_structured_content(self) -> None:
         self.session.handle({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2024-11-05"}})
         added = self.session.handle({"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "add_memory", "arguments": {"content": "legacy client"}}})

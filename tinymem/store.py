@@ -5,6 +5,8 @@ from __future__ import annotations
 import os
 import re
 import sqlite3
+import sys
+import time
 import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -38,6 +40,11 @@ def default_namespace() -> str:
     try:
         return _namespace(raw)
     except StoreError:
+        if "TINYMEM_NAMESPACE" in os.environ:
+            print(
+                f"tinymem: ignoring invalid TINYMEM_NAMESPACE={raw!r}, using 'default'",
+                file=sys.stderr,
+            )
         return "default"
 
 
@@ -45,11 +52,26 @@ class Store:
     def __init__(self, path: Path) -> None:
         self.path = path
         path.parent.mkdir(parents=True, exist_ok=True)
-        self._conn = sqlite3.connect(path, timeout=5)
-        self._conn.row_factory = sqlite3.Row
-        self._conn.execute("PRAGMA journal_mode=WAL")
-        self._conn.execute("PRAGMA busy_timeout=5000")
-        self._ensure_schema()
+        last: sqlite3.Error | None = None
+        for _ in range(20):
+            try:
+                self._conn = sqlite3.connect(path, timeout=5)
+                self._conn.row_factory = sqlite3.Row
+                self._conn.execute("PRAGMA journal_mode=WAL")
+                self._conn.execute("PRAGMA busy_timeout=5000")
+                self._ensure_schema()
+                return
+            except sqlite3.OperationalError as exc:
+                if "locked" not in str(exc).lower():
+                    raise
+                last = exc
+                try:
+                    self._conn.close()
+                except Exception:
+                    pass
+                time.sleep(0.05)
+        assert last is not None
+        raise last
 
     def close(self) -> None:
         self._conn.close()
@@ -122,7 +144,7 @@ class Store:
 
     def _sync_fts_if_needed(self) -> None:
         try:
-            self._conn.execute("BEGIN EXCLUSIVE")
+            self._conn.execute("BEGIN IMMEDIATE")
             try:
                 active = self._conn.execute(
                     "SELECT COUNT(*) FROM memories WHERE deleted_at IS NULL"
@@ -232,52 +254,52 @@ class Store:
     ) -> dict:
         identity = _id(memory_id)
         space: str | None = _namespace(namespace) if namespace is not None else None
-        row = self._conn.execute(
-            """
-            SELECT id, content, kind, namespace, created_at, updated_at, valid_until, norm
-            FROM memories WHERE id = ? AND deleted_at IS NULL
-            """,
-            (identity,),
-        ).fetchone()
-        if row is None:
-            raise StoreError("Memory not found")
-        if space is not None and row["namespace"] != space:
-            raise StoreError(
-                f"refusing cross-namespace update: id is in '{row['namespace']}',"
-                f" session is '{space}'"
-            )
-        new_content = row["content"] if content is None else _content(content)
-        new_kind = row["kind"] if kind is None else _kind(kind)
-        new_expiry = row["valid_until"] if valid_until is _UNSET else _valid_until(valid_until)
-        if new_content == row["content"] and new_kind == row["kind"] and new_expiry == row["valid_until"]:
-            return {**_row(row), "updated": False}
-        new_norm = _normalize(new_content)
-        clash = self._conn.execute(
-            """
-            SELECT id FROM memories
-            WHERE deleted_at IS NULL AND namespace = ? AND kind = ?
-            AND norm = ? AND id != ?
-            LIMIT 1
-            """,
-            (row["namespace"], new_kind, new_norm, identity),
-        ).fetchone()
-        if clash is not None:
-            raise StoreError(
-                "update would duplicate existing memory"
-                f" {clash['id']}; update or delete that one instead"
-            )
-        now = _now()
-        self._conn.execute(
-            "UPDATE memories SET content = ?, kind = ?, valid_until = ?, updated_at = ?, norm = ?"
-            " WHERE id = ?",
-            (new_content, new_kind, new_expiry, now, new_norm, identity),
-        )
-        if new_content != row["content"]:
+        with self._conn:
+            row = self._conn.execute(
+                """
+                SELECT id, content, kind, namespace, created_at, updated_at, valid_until, norm
+                FROM memories WHERE id = ? AND deleted_at IS NULL
+                """,
+                (identity,),
+            ).fetchone()
+            if row is None:
+                raise StoreError("Memory not found")
+            if space is not None and row["namespace"] != space:
+                raise StoreError(
+                    f"refusing cross-namespace update: id is in '{row['namespace']}',"
+                    f" session is '{space}'"
+                )
+            new_content = row["content"] if content is None else _content(content)
+            new_kind = row["kind"] if kind is None else _kind(kind)
+            new_expiry = row["valid_until"] if valid_until is _UNSET else _valid_until(valid_until)
+            if new_content == row["content"] and new_kind == row["kind"] and new_expiry == row["valid_until"]:
+                return {**_row(row), "updated": False}
+            new_norm = _normalize(new_content)
+            clash = self._conn.execute(
+                """
+                SELECT id FROM memories
+                WHERE deleted_at IS NULL AND namespace = ? AND kind = ?
+                AND norm = ? AND id != ?
+                LIMIT 1
+                """,
+                (row["namespace"], new_kind, new_norm, identity),
+            ).fetchone()
+            if clash is not None:
+                raise StoreError(
+                    "update would duplicate existing memory"
+                    f" {clash['id']}; update or delete that one instead"
+                )
+            now = _now()
             self._conn.execute(
-                "UPDATE memories_fts SET content = ? WHERE id = ?",
-                (new_content, identity),
+                "UPDATE memories SET content = ?, kind = ?, valid_until = ?, updated_at = ?, norm = ?"
+                " WHERE id = ?",
+                (new_content, new_kind, new_expiry, now, new_norm, identity),
             )
-        self._conn.commit()
+            if new_content != row["content"]:
+                self._conn.execute(
+                    "UPDATE memories_fts SET content = ? WHERE id = ?",
+                    (new_content, identity),
+                )
         updated = self._conn.execute(
             """
             SELECT id, content, kind, namespace, created_at, updated_at, valid_until
@@ -359,20 +381,19 @@ class Store:
     def delete(self, memory_id: str, namespace: str | None = None) -> dict:
         identity = _id(memory_id)
         space: str | None = _namespace(namespace) if namespace is not None else None
-        if space is not None:
+        now = _now()
+        with self._conn:
             row = self._conn.execute(
                 "SELECT namespace FROM memories WHERE id = ? AND deleted_at IS NULL",
                 (identity,),
             ).fetchone()
             if row is None:
                 raise StoreError("Memory not found")
-            if row["namespace"] != space:
+            if space is not None and row["namespace"] != space:
                 raise StoreError(
                     f"refusing cross-namespace delete: id is in '{row['namespace']}',"
                     f" session is '{space}'"
                 )
-        now = _now()
-        with self._conn:
             if space is None:
                 cursor = self._conn.execute(
                     """
