@@ -14,7 +14,7 @@ published. Do not use that tag. The first beta of this product is
 Requires Python 3.14 or newer. No third-party dependencies.
 
 ```sh
-git clone https://github.com/vramasamye/tinymem
+git clone https://github.com/vikirams/tinymem
 cd tinymem
 python3 -m pip install .
 ```
