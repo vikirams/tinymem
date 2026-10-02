@@ -1,3 +1,0 @@
-Project packages:
-  ../../package-extract/package
-    /tmp/tinymem-pi-beta-FxacD9/package-extract/package

@@ -1,4 +1,0 @@
-release-manifest.json: OK
-tinymem-native-0.1.0-beta.1-linux-x64.tar.gz: OK
-tinymem-pi-0.1.0-beta.1-linux-x64.tgz: OK
-tinymem-source-0.1.0-beta.1.tar.gz: OK

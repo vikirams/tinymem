@@ -142,3 +142,9 @@ node_modules/
 *.db-wal
 tinymem.db
 example.db
+
+# Machine-local agent connections written by tinymem connect
+.mcp.json
+.cursor/mcp.json
+.vscode/mcp.json
+.codex/

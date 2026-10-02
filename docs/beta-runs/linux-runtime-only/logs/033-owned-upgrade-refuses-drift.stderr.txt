@@ -1,1 +1,0 @@
-tinymem-pi: Owned TinyMem MCP configuration was modified; refusing to overwrite/remove it

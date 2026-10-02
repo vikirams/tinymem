@@ -1,9 +1,0 @@
-{
-  "action": "uninstall",
-  "root": "/tmp/tinymem-pi-beta-Bowp6D/fixture-repository",
-  "databasePreserved": "/tmp/tinymem-pi-beta-Bowp6D/data/memory.db",
-  "packageFilesPreserved": "/tmp/tinymem-pi-beta-Bowp6D/package-extract/package",
-  "packageDeclarationPreserved": false,
-  "databaseOpened": false,
-  "dryRun": false
-}

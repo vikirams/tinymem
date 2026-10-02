@@ -1,9 +1,0 @@
-{
-  "action": "uninstall",
-  "root": "/private/var/folders/ct/h12p5ml91d1cqzpzlz5rwq0m0000gn/T/tinymem-pi-beta-2uaO8D/fixture-repository",
-  "databasePreserved": "/private/var/folders/ct/h12p5ml91d1cqzpzlz5rwq0m0000gn/T/tinymem-pi-beta-2uaO8D/data/memory.db",
-  "packageFilesPreserved": "/private/var/folders/ct/h12p5ml91d1cqzpzlz5rwq0m0000gn/T/tinymem-pi-beta-2uaO8D/package-extract/package",
-  "packageDeclarationPreserved": false,
-  "databaseOpened": false,
-  "dryRun": false
-}

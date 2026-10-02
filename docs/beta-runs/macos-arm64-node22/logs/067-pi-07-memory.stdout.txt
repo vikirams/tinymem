@@ -1,3 +1,0 @@
-{"type":"extension_ui_request","id":"3e9a922d-a993-4f8e-9b10-6bbbe160a8a6","method":"setStatus","statusKey":"tinymem","statusText":"memory: ready"}
-{"type":"extension_ui_request","id":"627caa85-b79a-464f-85a6-ba6f3acdbaf7","method":"notify","message":"Memory hidden; audit history retained (not secure erasure).","notifyType":"info"}
-{"id":"command-7","type":"response","command":"prompt","success":true,"data":{"disposition":"handled"}}

@@ -1,1 +1,0 @@
-{"backup":"/tmp/tinymem-pi-beta-Bowp6D/backup/memory.backup.db"}

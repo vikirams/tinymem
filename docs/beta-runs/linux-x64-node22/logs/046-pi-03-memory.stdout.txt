@@ -1,3 +1,0 @@
-{"type":"extension_ui_request","id":"93205e8e-dde3-463d-bdfb-07b5de3e7122","method":"setStatus","statusKey":"tinymem","statusText":"memory: ready"}
-{"type":"extension_ui_request","id":"ba22bf2c-54c1-4242-9c3d-dddb809fa2c7","method":"notify","message":"Corrected 358356a71876685a83b07ee1a6396675 version 2","notifyType":"info"}
-{"id":"command-3","type":"response","command":"prompt","success":true,"data":{"disposition":"handled"}}

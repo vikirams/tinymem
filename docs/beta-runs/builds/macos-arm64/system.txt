@@ -1,8 +1,0 @@
-ProductName:		macOS
-ProductVersion:		26.5.1
-BuildVersion:		25F80
-Darwin apples-MacBook-Pro.local 25.5.0 Darwin Kernel Version 25.5.0: Mon Apr 27 20:38:00 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T8103 arm64
-Apple clang version 17.0.0 (clang-1700.0.13.3)
-Target: arm64-apple-darwin25.5.0
-Thread model: posix
-InstalledDir: /Library/Developer/CommandLineTools/usr/bin

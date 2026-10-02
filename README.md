@@ -1,108 +1,107 @@
 # TinyMem
 
-**Open-source memory for coding agents. Remember the decision, not the entire conversation.**
+Local memory with one MCP server for every coding agent.
 
-TinyMem is an MIT-licensed, local-first memory layer for carrying repository decisions, corrections,
-and conventions across coding sessions. The Rust core stores evidence in SQLite and exposes it through
-stdio MCP and Python/TypeScript SDKs. Default operation needs no account, API key, model, or network service.
+One Python stdio MCP server. Pi, Cursor, Claude Code, VS Code, and Codex
+launch that same process and share one SQLite file.
 
-The goal: help an agent avoid repeating a mistake, follow repository conventions, and recall why a
-technical decision was made—without filling its context window with old or irrelevant notes.
+`0.1.0-beta.1` was a different product (Rust, Pi-only). It was never
+published. Do not use that tag. The first beta of this product is
+`0.2.0-beta.1`.
 
-**Status: experimental Pi-only beta (`0.1.0-beta.1`).** The beta bundles the native engine,
-SDK and optional Pi extension for the specifically qualified platform/runtime cells in the [release guide](docs/PI_BETA_RELEASE.md).
-Release archives are not yet published (no download URL; see the [qualification ledger](docs/PI_BETA_CHECKS.md)).
-Its clean-room acceptance verifies integration/lifecycle behavior, not whether memory improves natural coding outcomes.
-It does not claim support for other agents, portable export, remote source resolvers, or a coding-task quality advantage.
-The standalone native MCP/SDK surfaces remain experimental development interfaces.
+## Install
 
-## What matters for coding memory
-
-| Priority | Available today | Next release work |
-| --- | --- | --- |
-| Provenance and staleness | File origins/dependencies with captured hashes; stale/unknown exclusion from current reads; versioned audit and freshness inspection | Commit/PR/conversation references, reapproval and resolver policies |
-| Quality per token | Ranked, deduplicated context packed into a caller budget with citations | Target-tokenizer support over MCP/SDKs; publish coding outcomes across budget sizes |
-| Write-time quality | Explicit writes and exact-scope normalized deduplication | Select durable decisions/corrections/conventions; idempotent proposals, conflict review and provenance-preserving merges |
-| Latency | Model-free lexical recall in a local engine | Reproducible cold/warm p50/p95/p99 results, including MCP overhead and source validation |
-| Scoping and control | Exact user/agent/project namespaces, deletion and immutable audit | Scoped export/purge; authenticated team/org access as a separate, tested phase |
-| Portability | MIT source and user-owned local storage | Versioned open interchange format and validated export/import round trips |
-
-**Scopes are not permissions.** Anyone who can read the database can access its contents. There is no
-native authenticated multi-user service. Deletion hides current evidence but does not erase audit,
-SQLite pages, WAL files, or backups.
-
-## Install the Pi beta
-
-The beta package installs into a single trusted Pi project and requires no Rust or Python at runtime. See the
-[versioned install, platform matrix, backup/restore and removal guide](docs/PI_BETA_RELEASE.md); do not infer
-support for platforms or versions not listed there.
-
-## Try the native core (developer/source-checkout path)
-
-Requires Rust/Cargo 1.90+ and a C compiler. From this checkout:
+Requires Python 3.14 or newer. No third-party dependencies.
 
 ```sh
-cargo build --release --locked -p tinymem-engine
-./target/release/tinymem index /absolute/path/to/repository
-./target/release/tinymem search /absolute/path/to/repository "authenticate"
-./target/release/tinymem --db /absolute/path/to/native-memory.db mcp /absolute/path/to/repository --user alice --project my-repo
+git clone <this-repo>
+cd tinymem
+python3 -m pip install .
 ```
 
-The final command starts a foreground stdio MCP server, not an HTTP service. Configure your agent to
-launch it with absolute paths. Use a project scope deliberately: repository root and memory scope are
-independent. Omitting `--project` selects the exact global project namespace, not all projects.
+This provides the `tinymem` console script.
 
-- [Pi-only beta release, install guide and qualification matrix](docs/PI_BETA_RELEASE.md)
-- [Source-checkout Pi developer setup](docs/PI_LOCAL_SETUP.md) · [legacy local check report](docs/PI_LOCAL_CHECKS.md)
-- [Quick start](QUICKSTART.md)
-- [MCP setup and agent integration status](MCP_SETUP.md)
-- [Native tools, scope semantics and safety](docs/NATIVE_MEMORY.md)
-- [Python SDK](sdks/python/README.md) · [TypeScript SDK](sdks/typescript/README.md)
+## Connect
 
-Use `assemble_context` for compact task evidence rather than dumping top-k search results:
+In the project directory, register the same server with every agent:
 
-```json
-{"query":"Update authentication cookie handling","token_budget":2000,
- "sources":["memory","repository"],"exclude_paths":["generated/**"]}
+```sh
+tinymem connect
 ```
 
-Source selection defaults to memory and repository; path exclusions affect repository evidence in
-this assembly only, not personal-memory dependencies or explicit search. MCP model-facing text is
-only the budgeted prompt; `structuredContent` and SDK results retain entries/provenance/counts.
-Insert only `prompt`. The complete prompt, including citations, is budgeted. The current MCP/SDK count
-is a conservative UTF-8-byte bound, **not model-token usage**; Rust callers can supply a custom
-tokenizer. Standalone lexical search uses literal AND: query with 1–3 distinctive terms, shorten after
-zero hits, and avoid redundant recall when automatic context already supplies the answer. See
-[context assembly](docs/CONTEXT_ASSEMBLY.md).
+This writes `tinymem mcp` plus `TINYMEM_DB` and `TINYMEM_NAMESPACE`
+into `.pi/mcp.json`, `.cursor/mcp.json`, `.mcp.json`,
+`.vscode/mcp.json`, and `.codex/config.toml`.
 
-## Coding-memory benchmark
+The namespace defaults to the git toplevel directory name, sanitized to
+`[A-Za-z0-9_:-]{1,64}`. Select agents with `--agent pi --agent cursor`.
+Config output alone is not qualification; see `docs/BETA_CHECKS.md`.
 
-We will evaluate whether an agent:
+## Tools
 
-- Avoids a previously corrected mistake and follows repository conventions.
-- Recalls a decision after 50 intervening sessions.
-- Stops using evidence after its source changes, is deleted, or becomes inaccessible.
-- Improves tested coding outcomes at a fixed context budget without leaking another scope's memory.
+Seven tools, same for every agent:
 
-The [benchmark protocol](docs/CODING_MEMORY_BENCHMARK.md) specifies paired baselines, temporal fixtures,
-held-out tasks, latency boundaries, token/cost accounting, failure reporting and reproducible artifacts.
-It is a **specification, not a published coding-quality result or implemented coding-task runner**.
-A [model-free local latency workload](docs/PI_LOCAL_CHECKS.md#local-latency-baseline) now retains raw
-samples; it does not establish task effectiveness. Conversational benchmarks can be supplementary.
+- `add_memory` — store a durable fact, preference, decision, or plan.
+- `search_memories` — search active memories.
+- `update_memory` — correct a memory instead of re-adding.
+- `get_profile` — get the static profile for a namespace.
+- `set_profile` — set the static profile for a namespace.
+- `memory_stats` — counts by namespace/kind plus database size.
+- `delete_memory` — hide a memory from search.
 
-## Roadmap and open-source development
+Other commands:
 
-The [coding-agent roadmap](docs/MEMORY_SYSTEM_PLAN.md) is authoritative. Day-one release gates include
-native MCP, installable Claude Code/Cursor integrations, portability, and reproducible measurements—not
-just a working database. Pi remains the initial evaluation runtime; the existing Cloudflare adapter is
-an optional controlled evaluation integration, not an installation requirement for the core.
+```sh
+tinymem mcp                        # serve the stdio MCP server
+tinymem stats [--json]             # counts and database size
+tinymem purge [--grace-days N]     # hard-delete hidden/expired rows, then vacuum
+tinymem profile get [--namespace N]
+tinymem profile set [--namespace N] "text" | --clear
+```
 
-- [Architecture](ARCHITECTURE.md) · [Domain language](CONTEXT.md)
-- [Contributing](CONTRIBUTING.md)
-- [Pi/Cloudflare evaluation setup](docs/PI_GATEWAY_TESTING.md)
-- [MIT license](LICENSE)
+## Write discipline
 
-The legacy Python `tinymem` package, HTTP/company-brain prototype, and root Python examples are frozen
-historical implementations. They are not the native product, do not share its database, and must not
-be presented as authenticated enterprise memory. `pip install tinymem` is **not** installation of this
-Rust core; the separate native Python adapter lives in `sdks/python`.
+`add_memory` only for durable facts, preferences, decisions, plans in
+1-2 sentences (aim under 500 chars). Never re-add a correction; use
+`update_memory`, which bumps `updated_at` so fresher facts rank higher.
+Set `valid_until` (`YYYY-MM-DD`) for transient facts like exams,
+branches, or work in progress. One static profile per namespace holds
+stack, conventions, and commands; read it before search.
+
+## Read discipline
+
+Prefer `get_profile` first, then `search_memories` with 1-3 distinctive
+terms and limit 3-5; shorten the query on zero hits. Omitting
+`namespace` searches the session namespace (`TINYMEM_NAMESPACE`).
+Passing `namespace` explicitly is the only cross-project read.
+`update_memory` and `delete_memory` refuse ids outside the session
+namespace.
+
+## Plaintext database
+
+The database is a plain SQLite file, default `~/.tinymem/tinymem.db`
+(`TINYMEM_DB` overrides it). Anyone with file access can read every
+namespace. Namespace is a label, not auth and not encryption.
+
+`delete_memory` hides a note from search (`deleted_at` plus FTS removal
+in one transaction). The row stays in the file. `purge` hard-deletes
+hidden or long-expired rows and runs `VACUUM` when SQLite allows it.
+Neither is secure erasure: free pages, WAL, and file copies may retain
+content.
+
+## What search is
+
+Offline lexical search: FTS5 with porter stemming, prefix match, and
+BM25 plus recency. Model-free and offline. Lexical search is not
+semantic search. There is no embedding, repository index, file
+provenance, automatic context injection, or conversation capture.
+
+Beta makes no claim that memory improves coding results.
+
+## Out of beta scope
+
+Rust engine, native archives, Pi extension, Cloudflare gateway,
+Python/TypeScript SDKs, team auth, encryption, secure deletion,
+export/import, Windows, Intel macOS, Linux qualification beyond the
+cells recorded in `docs/BETA_CHECKS.md`, and publishing to PyPI or
+GitHub Releases.
