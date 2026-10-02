@@ -19,6 +19,8 @@ MAX_QUERY = 200
 MAX_TERMS = 10
 MAX_NAMESPACE = 64
 MAX_ACTIVE_PER_NAMESPACE = 2_000
+INDEX_CAP = 5
+INDEX_LINE = 120
 NAMESPACE_RE = re.compile(r"^[A-Za-z0-9_:-]{1,64}$")
 
 _UNSET: object = object()
@@ -364,6 +366,25 @@ class Store:
         if label is not None:
             result["kind"] = label
         return result
+
+    def recent(self, namespace: str, limit: int = INDEX_CAP) -> list[dict]:
+        space = _namespace(namespace)
+        if isinstance(limit, bool) or not isinstance(limit, int):
+            raise StoreError("limit must be an integer")
+        bounded = min(max(limit, 1), INDEX_CAP)
+        now = _now()
+        rows = self._conn.execute(
+            """
+            SELECT id, content, kind, namespace, created_at, updated_at, valid_until
+            FROM memories
+            WHERE deleted_at IS NULL AND namespace = ?
+            AND (valid_until IS NULL OR valid_until > ?)
+            ORDER BY updated_at DESC, rowid DESC
+            LIMIT ?
+            """,
+            (space, now, bounded),
+        ).fetchall()
+        return [_row(row) for row in rows]
 
     def _like_fallback(self, first_token: str) -> list[sqlite3.Row]:
         like = "%" + first_token.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"

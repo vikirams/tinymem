@@ -14,7 +14,7 @@ published. Do not use that tag. The first beta of this product is
 Requires Python 3.14 or newer. No third-party dependencies.
 
 ```sh
-git clone <this-repo>
+git clone https://github.com/vramasamye/tinymem
 cd tinymem
 python3 -m pip install .
 ```
@@ -27,11 +27,21 @@ In the project directory, register the same server with every agent:
 
 ```sh
 tinymem connect
+tinymem connect --hooks --discipline
 ```
 
-This writes `tinymem mcp` plus `TINYMEM_DB` and `TINYMEM_NAMESPACE`
-into `.pi/mcp.json`, `.cursor/mcp.json`, `.mcp.json`,
+`connect` always writes MCP config: `tinymem mcp` plus `TINYMEM_DB` and
+`TINYMEM_NAMESPACE` into `.pi/mcp.json`, `.cursor/mcp.json`, `.mcp.json`,
 `.vscode/mcp.json`, and `.codex/config.toml`.
+
+`--hooks` is optional. On Claude Code and Cursor it registers a SessionStart
+Hook that runs `tinymem context` (Profile plus a recency Index of five
+Memories). The Hook must not persist. If it fails, the session still starts.
+Pi, VS Code, and Codex stay MCP-only unless you add `--discipline`.
+
+`--discipline` copies the TinyMem skill (`skills/tinymem/SKILL.md`) and, if
+the project has no `AGENTS.md`, writes a compact copy. Cursor also gets
+`.cursor/rules/tinymem.mdc`.
 
 The namespace defaults to the git toplevel directory name, sanitized to
 `[A-Za-z0-9_:-]{1,64}`. Select agents with `--agent pi --agent cursor`.
@@ -53,6 +63,8 @@ Other commands:
 
 ```sh
 tinymem mcp                        # serve the stdio MCP server
+tinymem connect [--hooks] [--discipline]
+tinymem context [--format text|claude|cursor]
 tinymem stats [--json]             # counts and database size
 tinymem purge [--grace-days N]     # hard-delete hidden/expired rows, then vacuum
 tinymem profile get [--namespace N]
@@ -65,8 +77,8 @@ tinymem profile set [--namespace N] "text" | --clear
 1-2 sentences (aim under 500 chars). Never re-add a correction; use
 `update_memory`, which bumps `updated_at` so fresher facts rank higher.
 Set `valid_until` (`YYYY-MM-DD`) for transient facts like exams,
-branches, or work in progress. One static profile per namespace holds
-stack, conventions, and commands; read it before search.
+branches, or work in progress. `set_profile` for stack, conventions, commands, and a short code map.
+Refuse transcripts, tool logs, file bodies, and same-day recaps.
 
 ## Read discipline
 
@@ -93,8 +105,9 @@ content.
 
 Offline lexical search: FTS5 with porter stemming, prefix match, and
 BM25 plus recency. Model-free and offline. Lexical search is not
-semantic search. There is no embedding, repository index, file
-provenance, automatic context injection, or conversation capture.
+semantic search. An optional SessionStart Hook may inject Profile plus a
+recency Index; full Memory text stays behind `search_memories`. There is
+no embedding, repository index, capture of tool output, or required proxy.
 
 Beta makes no claim that memory improves coding results.
 

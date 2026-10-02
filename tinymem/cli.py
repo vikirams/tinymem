@@ -8,6 +8,7 @@ import sqlite3
 import sys
 
 from tinymem.connect import TARGETS, ConnectError, connect
+from tinymem.context import FORMATS, emit
 from tinymem.protocol import serve
 from tinymem.store import Store, StoreError, default_db, default_namespace
 
@@ -19,6 +20,11 @@ def main(argv: list[str] | None = None) -> int:
     register = sub.add_parser("connect", help="register that same server with coding agents")
     register.add_argument("--project", default=".")
     register.add_argument("--agent", action="append", choices=sorted(TARGETS), help="repeat to select agents; default is all")
+    register.add_argument("--hooks", action="store_true", help="opt in SessionStart Hooks (not required)")
+    register.add_argument("--discipline", action="store_true", help="opt in the TinyMem discipline file")
+    ctx = sub.add_parser("context", help="print Profile plus recency Index for SessionStart (fail-open)")
+    ctx.add_argument("--namespace", default=None)
+    ctx.add_argument("--format", dest="ctx_format", choices=FORMATS, default="text")
     show = sub.add_parser("stats", help="show memory counts and database size")
     show.add_argument("--json", action="store_true", help="print machine-readable JSON")
     clean = sub.add_parser("purge", help="hard-delete soft-deleted and long-expired rows, then vacuum")
@@ -33,7 +39,9 @@ def main(argv: list[str] | None = None) -> int:
     profile_set.add_argument("--clear", action="store_true", help="clear the profile")
     args = parser.parse_args(argv)
     if args.command == "connect":
-        return _connect(args.project, args.agent)
+        return _connect(args.project, args.agent, args.hooks, args.discipline)
+    if args.command == "context":
+        return _context(args.namespace, args.ctx_format)
     if args.command == "stats":
         return _stats(args.json)
     if args.command == "purge":
@@ -147,11 +155,17 @@ def _profile_set(namespace: str | None, content: str | None, clear: bool) -> int
     return 0
 
 
-def _connect(project: str, agents: list[str] | None) -> int:
+def _context(namespace: str | None, fmt: str) -> int:
+    text = emit(namespace, fmt)
+    sys.stdout.write(text if text.endswith("\n") else text + "\n")
+    return 0
+
+
+def _connect(project: str, agents: list[str] | None, hooks: bool, discipline: bool) -> int:
     try:
         from pathlib import Path
 
-        written = connect(Path(project), agents)
+        written = connect(Path(project), agents, hooks=hooks, discipline=discipline)
     except ConnectError as exc:
         print(f"tinymem: {exc}", file=sys.stderr)
         return 1
