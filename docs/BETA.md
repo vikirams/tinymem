@@ -20,7 +20,7 @@ What runs today:
 - Tools: `add_memory`, `search_memories`, `update_memory`, `get_profile`, `set_profile`, `memory_stats`, `delete_memory`.
 - Store: `~/.tinymem/tinymem.db` unless `TINYMEM_DB` is set. WAL, FTS5 porter + prefix, BM25, exact and normalized dedup, `valid_until`, soft delete, `purge`, 2000 active rows per namespace, namespace profile.
 - `connect` writes the same stable command (`tinymem mcp` plus `TINYMEM_DB` and `TINYMEM_NAMESPACE`) into machine-local `.pi/mcp.json`, `.cursor/mcp.json`, `.mcp.json`, `.vscode/mcp.json`, and `.codex/config.toml` (git-ignored, not committed). Re-ran in this repo: all five carry `TINYMEM_NAMESPACE=tinymem`.
-- `python3 -m unittest tests.test_server tests.test_connect`: 26 tests, passing, on this machine only (Python 3.14.7).
+- `python3 -m unittest tests.test_server tests.test_connect`: 27 tests, passing, on this machine only (Python 3.14.7).
 - Package identity: `pyproject.toml` with `tinymem` console script (`tinymem.cli:main`), stdlib-only, `requires-python >=3.14` (the only version the suite has passed). Installed editable here; `/opt/homebrew/bin/tinymem` serves.
 - README states the contract and refusals. Version stays `0.2.0-dev`.
 - One recorded stdio qualification against the installed command in `docs/BETA_CHECKS.md` (initialize, seven tools, add, cross-process search, update, delete). Pi `mcp list` shows `connected` with the same seven tools; Pi agent tool-call is still pending (provider blocked).
@@ -55,14 +55,14 @@ Out of beta, on purpose:
 
 ## Gates
 
-All of these are required before the tree may say `0.2.0-beta.1`. Gates 1-6 are done (26 green). Gate 7 is partial: installed-command stdio is qualified, Pi list is connected, Pi agent tool-call is pending. Version stays `0.2.0-dev`.
+All of these are required before the tree may say `0.2.0-beta.1`. Gates 1-6 are done (27 green). Gate 7 is partial: installed-command stdio is qualified, Pi list is connected, Pi agent tool-call is pending. Version stays `0.2.0-dev`.
 
 1. **Default namespace on every tool.** DONE in `tinymem/protocol.py` + `tinymem/store.py`: `search_memories` uses `TINYMEM_NAMESPACE` when `namespace` is omitted. Passing `namespace` is the only cross-project read. `update_memory` and `delete_memory` refuse an id whose namespace is not the session namespace. Same-file access outside the tools is unchanged and stays documented as unprotected.
 2. **One transaction for hide.** DONE in `tinymem/store.py:delete` (`with self._conn:` covering both writes) and `tinymem/store.py:_sync_fts_if_needed` (raises instead of serving stale; `tinymem/cli.py` exits 1 on `sqlite3.Error`).
 3. **Version and package identity.** DONE except the final bump: `pyproject.toml` with `tinymem` console script, stdlib-only, `requires-python >=3.14` (only version the suite has passed). Keep `0.2.0-dev` until gate 7 passes; then set `0.2.0-beta.1`.
 4. **Connect records a stable command.** DONE: `connect.launch` returns `tinymem mcp` plus `TINYMEM_DB` and `TINYMEM_NAMESPACE`. Re-ran here; all five machine-local configs carry `TINYMEM_NAMESPACE=tinymem`.
 5. **README states the contract and the refusals.** DONE: install, connect, seven tools, write/read discipline, plaintext database, hide vs purge, namespace is not auth, lexical search is not semantic, no coding-quality claim, `0.1.0-beta.1` withdrawn and unpublished, no download sentence.
-6. **Tests for the gates.** DONE: default-namespace search isolation; cross-namespace update/delete refused; console-script launch; hide plus FTS consistency; startup rebuild repairs; two processes add without loss. 26 green.
+6. **Tests for the gates.** DONE: default-namespace search isolation; cross-namespace update/delete refused; console-script launch; hide plus FTS consistency; startup rebuild repairs; two processes add without loss; simultaneous cold-start open. 27 green.
 7. **One recorded qualification.** PARTIAL in `docs/BETA_CHECKS.md`: installed-command stdio round-trip passes on this Mac + Python 3.14.7; `pi mcp list` is `connected` with seven tools; Pi agent tool-call is pending (default provider 403, codex models limited at check time). Other agents stay "config written, not qualified". Do not set `0.2.0-beta.1` until a Pi-driven add/search/update/delete is recorded.
 
 ## Work order
@@ -71,7 +71,12 @@ All of these are required before the tree may say `0.2.0-beta.1`. Gates 1-6 are 
 2. DONE: `pyproject.toml` + console script; `connect` points at `tinymem mcp`.
 3. DONE: README with refusals. Version stays `0.2.0-dev`.
 4. DONE: re-ran connect here; `TINYMEM_NAMESPACE=tinymem` in all five configs.
-5. PARTIAL: suite is 26 green; installed-command stdio qualification recorded in `docs/BETA_CHECKS.md`. Pi agent tool-call still pending (provider blocked). Do NOT set `0.2.0-beta.1` yet.
+5. PARTIAL: suite is 27 green; installed-command stdio qualification recorded in `docs/BETA_CHECKS.md`. Pi agent tool-call still pending (provider blocked). Do NOT set `0.2.0-beta.1` yet. Finish, in order, once a transcript lands:
+  1. Append the transcript to `docs/BETA_CHECKS.md` (agent, model, commands, add/search/update/delete ids).
+  2. Set `0.2.0-beta.1` in `tinymem/__init__.py` and `pyproject.toml`.
+  3. `python3 -m pip install --break-system-packages .` (non-editable, proves the packaged path).
+  4. `python3 -m unittest tests.test_server tests.test_connect` (must stay green).
+  5. `git add -A && git commit`. Do not amend `43c5398`. Do not push `0.1.0-beta.1`.
 6. DONE: committed as `12dba07`. Did not amend `43c5398`. Did not push `0.1.0-beta.1`.
 
 Published beta (PyPI or a GitHub release asset) is a later plan. It starts only after this local beta exists, and only with a URL that serves the file the docs name.
