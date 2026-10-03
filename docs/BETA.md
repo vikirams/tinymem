@@ -1,86 +1,123 @@
 # TinyMem beta plan
 
-Updated 2026-10-02. This file replaces `docs/PI_BETA_RELEASE.md`, `docs/PI_BETA_CHECKS.md`, and `docs/MEMORY_SYSTEM_PLAN.md`. Those described a Rust, Pi-only product. That product is withdrawn.
+Updated 2026-10-03. This file replaces `docs/PI_BETA_RELEASE.md`,
+`docs/PI_BETA_CHECKS.md`, and `docs/MEMORY_SYSTEM_PLAN.md`. Those described
+a Rust, Pi-only product. That product is withdrawn.
 
-## Decision
+## Release identity
 
-Beta is one local Python stdio MCP server. Pi, Cursor, Claude Code, VS Code, and Codex launch that same process and share one SQLite file. There is no per-agent memory implementation, no Rust engine, and no hosted service.
+The first beta of the Python product is **`0.2.0-beta.1`**. It is a
+source-only release at `https://github.com/vikirams/tinymem`, installed
+from that exact tag. Build tools normalize the wheel/sdist version to
+`0.2.0b1`; the runtime and source version are `0.2.0-beta.1`.
 
-`0.1.0-beta.1` (tag on `43c5398`) is a different product. It was never published. Do not push that tag, do not attach its archives to a GitHub release, and do not call the current tree `0.1.0-beta.1`.
+`0.1.0-beta.1` (local tag on `43c5398`) is a different product. It was
+never published. Do not push that tag, attach its archives to a release,
+or reuse it. Do not amend `43c5398` or move a published tag.
 
-The first beta of this product is `0.2.0-beta.1`. The working tree currently says `0.2.0-dev`. Do not tag, and do not say "downloadable", until a real install URL exists. A passing local test is not a release.
+## Decision and contract
 
-## What is true now
+Beta is one local Python stdio MCP server. Pi, Cursor, Claude Code,
+VS Code, and Codex configs launch the same process and share one SQLite
+file. There is no per-agent memory implementation, Rust engine, or
+hosted service. Config generation is not live-agent qualification.
 
-`HEAD` is `12dba07`, the Python rewrite commit on top of the withdrawn Rust beta (`43c5398`). Nothing is on a remote.
+A person can clone the pinned source tag, install it in a Python 3.14+
+venv, and run `tinymem connect` in a project. The venv's `bin` directory
+must be on the agent's PATH. Memory is explicit sentence-level notes:
+facts, preferences, decisions, plans, plus one short static Profile.
+Retrieval is offline lexical search. Beta does not claim that memory
+makes coding better.
 
-What runs today:
+Qualified live-agent cell: **Darwin 25.5.0 arm64 / Python 3.14.7 /
+Pi 1.0.0** (`openai-codex`, `gpt-6.1-sol`). Two independent live Pi
+processes completed add/search/update/delete against a non-editable
+wheel install, with the same temporary database and project namespace.
+Evidence is in `docs/BETA_CHECKS.md`.
 
-- Python 3.14 stdio MCP (`tinymem/__main__.py` with no args, or `mcp`).
-- Tools: `add_memory`, `search_memories`, `update_memory`, `get_profile`, `set_profile`, `memory_stats`, `delete_memory`.
-- Store: `~/.tinymem/tinymem.db` unless `TINYMEM_DB` is set. WAL, FTS5 porter + prefix, BM25, exact and normalized dedup, `valid_until`, soft delete, `purge`, 2000 active rows per namespace, namespace profile.
-- `connect` writes the same stable command (`tinymem mcp` plus `TINYMEM_DB` and `TINYMEM_NAMESPACE`) into machine-local `.pi/mcp.json`, `.cursor/mcp.json`, `.mcp.json`, `.vscode/mcp.json`, and `.codex/config.toml` (git-ignored, not committed). Re-ran in this repo: all five carry `TINYMEM_NAMESPACE=tinymem`.
-- `python3 -m unittest tests.test_server tests.test_connect`: 27 tests, passing, on this machine only (Python 3.14.7).
-- Package identity: `pyproject.toml` with `tinymem` console script (`tinymem.cli:main`), stdlib-only, `requires-python >=3.14` (the only version the suite has passed). Installed editable here; `/opt/homebrew/bin/tinymem` serves.
-- README states the contract and refusals. Version stays `0.2.0-dev`.
-- One recorded stdio qualification against the installed command in `docs/BETA_CHECKS.md` (initialize, seven tools, add, cross-process search, update, delete). Pi `mcp list` shows `connected` with the same seven tools; Pi agent tool-call is still pending (provider blocked).
-- Limits that stay: plaintext SQLite file (namespace is a label, not auth); `delete_memory` hides, `purge` hard-deletes, neither is secure erasure; offline lexical search only (no embeddings, repo index, provenance, context budget, backup command); no coding-quality claim.
-
-What is not true:
-
-- No Pi agent tool-call round-trip is recorded. `pi mcp list` is `connected`, but no Pi-driven add/search/update/delete exists (provider blocked at check time). Other agents are config-written only.
-- Committed locally as `12dba07` (not amended onto `43c5398`, tag `0.1.0-beta.1` not pushed). No remote configured.
-- The database `~/.tinymem/tinymem.db` holds project namespaces including prior notes.
-
-## What beta means
-
-A person can clone this repo, run one command, and have the qualified agents in that project read and write the same namespace through the same tools. Memory is explicit notes: facts, preferences, decisions, plans, plus one short profile. Retrieval is offline lexical search. Beta does not claim that memory makes coding better.
-
-Out of beta, on purpose:
-
-- Rust engine, native archives, Pi extension, Cloudflare gateway, Python/TypeScript SDKs.
-- Embeddings, repository indexing, file provenance, automatic context injection, conversation capture.
-- Team auth, encryption, secure deletion, export/import.
-- Windows, Intel macOS, Linux, and any agent whose config writer has not had a live tool round-trip.
-- Publishing to PyPI or GitHub Releases.
+Cursor, Claude Code, VS Code, and Codex remain **config written, not
+live-qualified**. Automated macOS/Linux package tests in CI do not
+qualify a live agent on those platforms.
 
 ## Words
 
-- **Namespace.** The project bucket inside the shared database. `connect` sets it from the git toplevel directory name, sanitized to `[A-Za-z0-9_:-]{1,64}`. It is not a user, not an agent, and not a permission.
-- **Profile.** One static text blob per namespace (stack, conventions, commands). Not a memory. Read it before search.
-- **Memory.** One durable sentence-level note with a kind. Corrections replace it (`update_memory`). They are not a second note.
-- **Hide.** `delete_memory` sets `deleted_at` and drops the FTS row. The file remains.
-- **Purge.** Hard-delete of hidden or long-expired rows, then `VACUUM` when SQLite allows it. Still not secure erasure.
-- **Qualified.** An OS / Python / agent cell with a recorded live run: initialize, list the seven tools, add, search in a new process, update, delete. Config output alone is not qualification.
+- **Namespace.** Project bucket inside the shared database. `connect`
+  derives it from the git toplevel directory name, sanitized to
+  `[A-Za-z0-9_:-]{1,64}`. A label, not a permission or agent identity.
+- **Profile.** One static text blob per namespace: stack, conventions,
+  commands, short code map. Not a Memory. Read it before search.
+- **Memory.** Durable sentence-level note with a kind. Corrections use
+  `update_memory`, not another note.
+- **Hide.** `delete_memory` sets `deleted_at` and removes the FTS row
+  in one transaction. The database row remains.
+- **Purge.** Hard-delete hidden or long-expired rows, then `VACUUM` when
+  SQLite allows it. Still not secure erasure.
+- **Qualified.** Recorded OS/Python/agent cell with initialize, seven
+  tools listed, add, search in a new process, update, delete, and an
+  empty search afterward. Config output alone is not qualification.
 
-## Gates
+## Gates — all seven passed
 
-All of these are required before the tree may say `0.2.0-beta.1`. Gates 1-6 are done (27 green). Gate 7 is partial: installed-command stdio is qualified, Pi list is connected, Pi agent tool-call is pending. Version stays `0.2.0-dev`.
+1. **Default namespace on every tool.** Search defaults to
+   `TINYMEM_NAMESPACE`; explicit namespace enables cross-project reads.
+   Update/delete refuse ids outside the session namespace.
+2. **One transaction for hide.** Hide plus FTS removal is atomic;
+   startup repairs stale FTS, or fails rather than serving stale data.
+3. **Version/package identity.** Stdlib-only `pyproject.toml`, Python
+   `>=3.14`, `tinymem.cli:main` console script. Version bumped only after
+   the recorded dev-version live qualification, then the beta wheel
+   was qualified again.
+4. **Stable connect command.** `tinymem mcp` plus pinned `TINYMEM_DB`
+   and `TINYMEM_NAMESPACE`. Optional hooks pin the same values and
+   replace legacy/stale TinyMem hooks without removing unrelated hooks.
+5. **README contract and refusals.** Pinned install, seven tools,
+   discipline, plaintext file, namespace is not auth, hide vs purge,
+   lexical search is not semantic, no coding-quality claim.
+6. **Regression suite.** 36 tests pass locally, both from the source
+   tree and with an installed wheel imported outside the checkout.
+   Packaged MCP and generated hooks also pass separate smoke checks.
+7. **Live qualification.** Pi-driven add/search/update/delete recorded
+   on 2026-10-03, first before the bump and again on `0.2.0-beta.1`.
 
-1. **Default namespace on every tool.** DONE in `tinymem/protocol.py` + `tinymem/store.py`: `search_memories` uses `TINYMEM_NAMESPACE` when `namespace` is omitted. Passing `namespace` is the only cross-project read. `update_memory` and `delete_memory` refuse an id whose namespace is not the session namespace. Same-file access outside the tools is unchanged and stays documented as unprotected.
-2. **One transaction for hide.** DONE in `tinymem/store.py:delete` (`with self._conn:` covering both writes) and `tinymem/store.py:_sync_fts_if_needed` (raises instead of serving stale; `tinymem/cli.py` exits 1 on `sqlite3.Error`).
-3. **Version and package identity.** DONE except the final bump: `pyproject.toml` with `tinymem` console script, stdlib-only, `requires-python >=3.14` (only version the suite has passed). Keep `0.2.0-dev` until gate 7 passes; then set `0.2.0-beta.1`.
-4. **Connect records a stable command.** DONE: `connect.launch` returns `tinymem mcp` plus `TINYMEM_DB` and `TINYMEM_NAMESPACE`. Re-ran here; all five machine-local configs carry `TINYMEM_NAMESPACE=tinymem`.
-5. **README states the contract and the refusals.** DONE: install, connect, seven tools, write/read discipline, plaintext database, hide vs purge, namespace is not auth, lexical search is not semantic, no coding-quality claim, `0.1.0-beta.1` withdrawn and unpublished, no download sentence.
-6. **Tests for the gates.** DONE: default-namespace search isolation; cross-namespace update/delete refused; console-script launch; hide plus FTS consistency; startup rebuild repairs; two processes add without loss; simultaneous cold-start open. 27 green.
-7. **One recorded qualification.** PARTIAL in `docs/BETA_CHECKS.md`: installed-command stdio round-trip passes on this Mac + Python 3.14.7; `pi mcp list` is `connected` with seven tools; Pi agent tool-call is pending (default provider 403, codex models limited at check time). Other agents stay "config written, not qualified". Do not set `0.2.0-beta.1` until a Pi-driven add/search/update/delete is recorded.
+## Cut the source beta
 
-## Work order
+1. Review the pending changes; confirm no local configs, databases,
+   credentials, or qualification JSONL logs are staged.
+2. Build sdist and wheel; install the wheel non-editably in a fresh
+   venv. Confirm imports resolve to `site-packages`; run the suite,
+   packaged MCP round-trip, and generated-hook checks outside checkout.
+3. Commit and push `main`. Wait for both GitHub CI jobs on that exact
+   commit to pass. CI builds distributions, installs the wheel, and
+   tests the installed package outside checkout.
+4. Tag only that passing commit and push only the new tag:
+   ```sh
+   git tag -a 0.2.0-beta.1 -m "TinyMem Python MCP beta"
+   git push origin 0.2.0-beta.1
+   ```
+   Never use `git push --tags`: the withdrawn tag remains local.
+5. Verify the remote tag and a clean pinned clone/install. Give testers
+   the README installation instructions and GitHub issue-report link.
 
-1. DONE: namespace defaults and hide/FTS transaction, with tests.
-2. DONE: `pyproject.toml` + console script; `connect` points at `tinymem mcp`.
-3. DONE: README with refusals. Version stays `0.2.0-dev`.
-4. DONE: re-ran connect here; `TINYMEM_NAMESPACE=tinymem` in all five configs.
-5. PARTIAL: suite is 27 green; installed-command stdio qualification recorded in `docs/BETA_CHECKS.md`. Pi agent tool-call still pending (provider blocked). Do NOT set `0.2.0-beta.1` yet. Finish, in order, once a transcript lands:
-  1. Append the transcript to `docs/BETA_CHECKS.md` (agent, model, commands, add/search/update/delete ids).
-  2. Set `0.2.0-beta.1` in `tinymem/__init__.py` and `pyproject.toml`.
-  3. `python3 -m pip install --break-system-packages .` (non-editable, proves the packaged path).
-  4. `python3 -m unittest tests.test_server tests.test_connect` (must stay green).
-  5. `git add -A && git commit`. Do not amend `43c5398`. Do not push `0.1.0-beta.1`.
-6. DONE: committed as `12dba07`. Did not amend `43c5398`. Did not push `0.1.0-beta.1`.
+## Limits and exclusions
 
-Published beta (PyPI or a GitHub release asset) is a later plan. It starts only after this local beta exists, and only with a URL that serves the file the docs name.
+Plaintext SQLite (`~/.tinymem/tinymem.db`, overridden by `TINYMEM_DB`);
+anyone with file access can read all namespaces. Neither Hide nor Purge
+is secure erasure. Do not store secrets.
 
-## Later, not this beta
+Out of beta: Rust engine, native archives, Pi extension, Cloudflare
+gateway, Python/TypeScript SDKs, embeddings, repository indexing,
+provenance, context budgets, conversation/tool-output capture, team auth,
+encryption, export/import, backup command, Windows/Intel macOS and other
+unqualified agent/platform cells. Optional SessionStart hooks inject
+Profile plus a five-entry recency Index, not full Memory bodies.
 
-Schema `user_version` before any on-disk change that old processes cannot read. Backup/restore. Quota and rate-limit tests. A second qualified agent. Linux and Windows. Semantic search, provenance, and context packing, if a measured coding task needs them. None of those reopen the Rust tree.
+Publishing to PyPI or GitHub Releases (including uploaded release assets)
+is a separate later plan, not part of this source beta. Any future
+published download must have a URL that serves the documented artifact.
+
+## Later
+
+Schema `user_version` before incompatible on-disk changes. Backup/restore.
+Quota/rate-limit tests. A second qualified agent. Linux/Windows live-agent
+qualification. Semantic search, provenance, or context packing only if a
+measured coding task needs them. None of those reopen the Rust tree.

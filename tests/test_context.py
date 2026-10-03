@@ -1,8 +1,12 @@
 import json
 import os
+import shlex
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from tinymem.cli import main
 from tinymem.connect import connect
@@ -68,6 +72,120 @@ class ContextCliTests(unittest.TestCase):
 
 
 class ConnectHookTests(unittest.TestCase):
+    def test_generated_hooks_use_the_mcp_database_and_namespace(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            project = root / "release-project"
+            project.mkdir()
+            db = root / "data with 'quotes' $dollar ; spaces" / "memory.db"
+            store = Store(db)
+            try:
+                store.set_profile("release-project", "RIGHT_PROJECT_PROFILE")
+                store.add("RIGHT_PROJECT_INDEX", namespace="release-project")
+                store.set_profile("default", "WRONG_DEFAULT_PROFILE")
+                store.set_profile("other-project", "WRONG_OTHER_PROFILE")
+            finally:
+                store.close()
+            with patch.dict(os.environ, {"TINYMEM_DB": str(db)}):
+                connect(project, ["claude", "cursor"], hooks=True)
+            other_db = root / "other.db"
+            other = Store(other_db)
+            try:
+                other.set_profile("release-project", "WRONG_DATABASE_PROFILE")
+            finally:
+                other.close()
+            # Exercise the real CLI without requiring a globally installed script.
+            bin_dir = root / "bin"
+            bin_dir.mkdir()
+            script = bin_dir / "tinymem"
+            script.write_text(
+                f'#!/bin/sh\nexec {shlex.quote(sys.executable)} -m tinymem "$@"\n',
+                encoding="utf-8",
+            )
+            script.chmod(0o755)
+            env = dict(os.environ)
+            env["PATH"] = str(bin_dir) + os.pathsep + env.get("PATH", "")
+            env["PYTHONPATH"] = str(Path(__file__).resolve().parents[1])
+            # Host hooks do not inherit the MCP subprocess's environment.
+            for inherited in (
+                {"HOME": str(root / "host-home")},
+                {"TINYMEM_DB": str(db)},
+                {"TINYMEM_DB": str(other_db), "TINYMEM_NAMESPACE": "other-project"},
+            ):
+                host_env = {
+                    key: value for key, value in env.items()
+                    if key not in ("TINYMEM_DB", "TINYMEM_NAMESPACE")
+                }
+                host_env.update(inherited)
+                for agent in ("claude", "cursor"):
+                    with self.subTest(agent=agent, inherited=inherited):
+                        if agent == "claude":
+                            config = json.loads((project / ".claude" / "settings.json").read_text(encoding="utf-8"))
+                            command = config["hooks"]["SessionStart"][0]["hooks"][0]["command"]
+                        else:
+                            config = json.loads((project / ".cursor" / "hooks.json").read_text(encoding="utf-8"))
+                            command = config["hooks"]["sessionStart"][0]["command"]
+                        result = subprocess.run(
+                            command, shell=True, cwd=project, env=host_env,
+                            capture_output=True, text=True, timeout=10, check=True,
+                        )
+                        payload = json.loads(result.stdout)
+                        text = (
+                            payload["hookSpecificOutput"]["additionalContext"]
+                            if agent == "claude" else payload["additionalContext"]
+                        )
+                        self.assertIn("RIGHT_PROJECT_PROFILE", text)
+                        self.assertIn("RIGHT_PROJECT_INDEX", text)
+                        self.assertNotIn("WRONG_", text)
+
+    def test_reconnect_replaces_legacy_and_stale_hooks_without_touching_other_hooks(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            project = root / "release-project"
+            (project / ".claude").mkdir(parents=True)
+            (project / ".cursor").mkdir()
+            keep = {"type": "command", "command": "echo keep", "timeout": 7}
+            legacy = {"type": "command", "command": "tinymem context --format claude"}
+            claude_path = project / ".claude" / "settings.json"
+            claude_path.write_text(json.dumps({
+                "keep": True,
+                "hooks": {
+                    "SessionStart": [{"matcher": "startup", "hooks": [keep, legacy, legacy]}],
+                    "OtherEvent": [],
+                },
+            }), encoding="utf-8")
+            cursor_path = project / ".cursor" / "hooks.json"
+            cursor_path.write_text(json.dumps({
+                "version": 1,
+                "hooks": {
+                    "sessionStart": [
+                        {"command": "echo keep"},
+                        {"command": "tinymem context --format cursor"},
+                        {"command": "tinymem context --format cursor"},
+                    ],
+                    "otherEvent": [],
+                },
+            }), encoding="utf-8")
+            for db in (root / "first.db", root / "second.db"):
+                with self.subTest(db=db), patch.dict(os.environ, {"TINYMEM_DB": str(db)}):
+                    connect(project, ["claude", "cursor"], hooks=True)
+                    # A repeat must neither duplicate hooks nor retain stale bindings.
+                    connect(project, ["claude", "cursor"], hooks=True)
+                    claude = json.loads(claude_path.read_text(encoding="utf-8"))
+                    self.assertTrue(claude["keep"])
+                    self.assertEqual(claude["hooks"]["OtherEvent"], [])
+                    inner = [hook for group in claude["hooks"]["SessionStart"] for hook in group["hooks"]]
+                    self.assertIn(keep, inner)
+                    cursor = json.loads(cursor_path.read_text(encoding="utf-8"))
+                    self.assertEqual(cursor["hooks"]["otherEvent"], [])
+                    self.assertIn({"command": "echo keep"}, cursor["hooks"]["sessionStart"])
+                    for hooks in (inner, cursor["hooks"]["sessionStart"]):
+                        commands = [item["command"] for item in hooks if item["command"] != "echo keep"]
+                        self.assertEqual(len(commands), 1)
+                        arguments = shlex.split(commands[0])
+                        self.assertIn(f"TINYMEM_DB={db.resolve()}", arguments)
+                        self.assertIn("TINYMEM_NAMESPACE=release-project", arguments)
+
     def test_hooks_and_discipline_are_opt_in(self) -> None:
         project = Path(self.id().replace(".", "_")).resolve()
         project.mkdir()
@@ -79,10 +197,9 @@ class ConnectHookTests(unittest.TestCase):
         self.assertIn("skills/tinymem/SKILL.md", rel)
         self.assertIn("AGENTS.md", rel)
         claude = json.loads((project / ".claude" / "settings.json").read_text(encoding="utf-8"))
-        command = claude["hooks"]["SessionStart"][0]["hooks"][0]["command"]
-        self.assertEqual(command, "tinymem context --format claude")
+        self.assertIn("SessionStart", claude["hooks"])
         cursor = json.loads((project / ".cursor" / "hooks.json").read_text(encoding="utf-8"))
-        self.assertEqual(cursor["hooks"]["sessionStart"][0]["command"], "tinymem context --format cursor")
+        self.assertIn("sessionStart", cursor["hooks"])
         skill = (project / "skills" / "tinymem" / "SKILL.md").read_text(encoding="utf-8")
         self.assertIn("add_memory", skill)
         connect(project, ["claude"], hooks=True)

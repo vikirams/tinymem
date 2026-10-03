@@ -134,11 +134,7 @@ class MemoryTests(unittest.TestCase):
         self.assertEqual(stats["active"], 1)
         self.assertEqual(stats["deleted"], 1)
         # Backdate the soft-delete past the grace window, then purge.
-        self.store._conn.execute(
-            "UPDATE memories SET deleted_at = ? WHERE id = ?",
-            ("2000-01-01T00:00:00Z", old["id"]),
-        )
-        self.store._conn.commit()
+        self.store.debug_set_deleted_at(old["id"], "2000-01-01T00:00:00Z")
         result = self.store.purge(grace_days=30)
         self.assertEqual(result["purged"], 1)
         stats = self.store.stats()
@@ -274,15 +270,12 @@ class ProtocolTests(unittest.TestCase):
         )
         self.store.delete(record["id"], namespace="proj-a")
         self.assertEqual(self.store.search("cookie", namespace="proj-a")["memories"], [])
-        fts_count = self.store._conn.execute("SELECT COUNT(*) FROM memories_fts").fetchone()[0]
-        active = self.store._conn.execute("SELECT COUNT(*) FROM memories WHERE deleted_at IS NULL").fetchone()[0]
-        self.assertEqual(fts_count, active)
+        self.assertEqual(self.store.debug_fts_count(), self.store.stats()["active"])
 
     def test_startup_rebuild_repairs_stale_fts(self) -> None:
         record = self.store.add("Rebuild me please", namespace="proj-a")
         # Simulate a crash that left the FTS row behind after hide.
-        self.store._conn.execute("UPDATE memories SET deleted_at = ? WHERE id = ?", ("2026-01-01T00:00:00Z", record["id"]))
-        self.store._conn.commit()
+        self.store.debug_set_deleted_at(record["id"], "2026-01-01T00:00:00Z")
         self.store.close()
         reopened = Store(Path(self.directory.name) / "memory.db")
         self.addCleanup(reopened.close)

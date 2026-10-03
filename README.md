@@ -7,19 +7,28 @@ launch that same process and share one SQLite file.
 
 `0.1.0-beta.1` was a different product (Rust, Pi-only). It was never
 published. Do not use that tag. The first beta of this product is
-`0.2.0-beta.1`.
+`0.2.0-beta.1`, distributed as a pinned source tag (not PyPI or release assets).
+
+Qualified beta: macOS arm64, Python 3.14.7, Pi 1.0.0. Cursor, Claude Code,
+VS Code, and Codex configs are generated but not live-qualified.
+See `docs/BETA_CHECKS.md` for the recorded checks and limitations.
 
 ## Install
 
-Requires Python 3.14 or newer. No third-party dependencies.
+Requires Python 3.14 or newer. No third-party runtime dependencies.
 
 ```sh
-git clone https://github.com/vikirams/tinymem
+git clone --branch 0.2.0-beta.1 --single-branch https://github.com/vikirams/tinymem
 cd tinymem
-python3 -m pip install .
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install .
 ```
 
-This provides the `tinymem` console script.
+This provides the `tinymem` console script. Keep this venv's `bin` directory
+on PATH when launching your agents; `connect` records `tinymem mcp`, not
+an absolute interpreter path. For development, clone `main` instead of the
+beta tag.
 
 ## Connect
 
@@ -36,7 +45,10 @@ tinymem connect --hooks --discipline
 
 `--hooks` is optional. On Claude Code and Cursor it registers a SessionStart
 Hook that runs `tinymem context` (Profile plus a recency Index of five
-Memories). The Hook must not persist. If it fails, the session still starts.
+Memories). Hook commands pin the same database and project namespace as MCP,
+independently of the host environment. Re-run `tinymem connect --hooks` to
+replace older hook commands; unrelated hooks are preserved.
+The Hook must not persist. If it fails, the session still starts.
 Pi, VS Code, and Codex stay MCP-only unless you add `--discipline`.
 
 `--discipline` copies the TinyMem skill (`skills/tinymem/SKILL.md`) and, if
@@ -118,3 +130,12 @@ Python/TypeScript SDKs, team auth, encryption, secure deletion,
 export/import, Windows, Intel macOS, Linux qualification beyond the
 cells recorded in `docs/BETA_CHECKS.md`, and publishing to PyPI or
 GitHub Releases.
+
+## Development
+
+```sh
+python3 -m unittest discover -s tests -v
+```
+
+See `CONTRIBUTING.md`, `SECURITY.md`, `CHANGELOG.md`, `docs/BETA.md`.
+License: MIT (`LICENSE`).

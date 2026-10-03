@@ -1,0 +1,29 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+        python-version: ["3.14"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: python -m unittest discover -s tests -v
+      - run: python -m compileall tinymem
+      - run: python -m pip install build
+      - run: python -m build
+      - run: python -m pip install dist/*.whl
+      - name: Test the installed package outside the checkout
+        working-directory: ${{ runner.temp }}
+        run: |
+          python -c "import tinymem; assert 'site-packages' in tinymem.__file__, tinymem.__file__"
+          python -m unittest discover -s "$GITHUB_WORKSPACE/tests" -v
+          printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"ci","version":"1"}}}' | TINYMEM_DB="$RUNNER_TEMP/tinymem-ci.db" tinymem mcp | python -c "import json, sys, tinymem; r = json.load(sys.stdin); assert r['result']['serverInfo']['version'] == tinymem.__version__, r"

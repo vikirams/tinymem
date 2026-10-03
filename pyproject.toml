@@ -1,11 +1,29 @@
 [project]
 name = "tinymem"
-version = "0.2.0-dev"
+version = "0.2.0-beta.1"
 description = "Local memory with one MCP server for every coding agent"
 readme = "README.md"
 requires-python = ">=3.14"
 license = { text = "MIT" }
+keywords = ["mcp", "memory", "sqlite", "coding-agent"]
+authors = [{ name = "TinyMem Contributors" }]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: Software Development",
+  "Topic :: Database",
+  "Operating System :: MacOS",
+  "Operating System :: POSIX :: Linux",
+]
 dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/vikirams/tinymem"
+Repository = "https://github.com/vikirams/tinymem"
+Issues = "https://github.com/vikirams/tinymem/issues"
 
 [project.scripts]
 tinymem = "tinymem.cli:main"
@@ -16,3 +34,16 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["tinymem"]
+
+[tool.ruff]
+target-version = "py314"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = ["SIM108"]
+
+[tool.mypy]
+python_version = "3.14"
+strict = false
+ignore_missing_imports = true

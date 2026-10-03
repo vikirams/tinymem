@@ -540,6 +540,24 @@ class Store:
             vacuumed = False
         return {"purged": purged, "cutoff": cutoff, "vacuumed": vacuumed}
 
+    def debug_set_deleted_at(self, memory_id: str, deleted_at: str) -> None:
+        """Test seam: backdate deleted_at without touching FTS.
+
+        Simulates an old soft-delete (for purge) or a crash that left a
+        stale FTS row (for startup rebuild). Not part of the MCP contract.
+        """
+        identity = _id(memory_id)
+        self._conn.execute(
+            "UPDATE memories SET deleted_at = ? WHERE id = ?",
+            (deleted_at, identity),
+        )
+        self._conn.commit()
+
+    def debug_fts_count(self) -> int:
+        """Test seam: row count of the FTS index. Not part of MCP contract."""
+        row = self._conn.execute("SELECT COUNT(*) FROM memories_fts").fetchone()
+        return int(row[0])
+
 
 def _content(value: str) -> str:
     if not isinstance(value, str):

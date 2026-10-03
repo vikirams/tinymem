@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import shlex
 from pathlib import Path
 
 from tinymem.store import default_db
@@ -73,7 +74,7 @@ def connect(
         for name in selected:
             writer = HOOKS.get(name)
             if writer is not None:
-                written.append(writer(root))
+                written.append(writer(root, entry))
     if discipline:
         written.extend(write_discipline(root, selected))
     return written
@@ -115,10 +116,18 @@ TARGETS = {
     "codex": write_codex,
 }
 
-HOOK_COMMAND = "tinymem context"
+
+def _hook_command(entry: dict, fmt: str) -> str:
+    env = entry["env"]
+    return shlex.join([
+        "env",
+        f"TINYMEM_DB={env['TINYMEM_DB']}",
+        f"TINYMEM_NAMESPACE={env['TINYMEM_NAMESPACE']}",
+        "tinymem", "context", "--format", fmt,
+    ])
 
 
-def write_claude_hook(root: Path) -> Path:
+def write_claude_hook(root: Path, entry: dict) -> Path:
     path = root / ".claude" / "settings.json"
     data = _read_json_object(path)
     hooks = data.setdefault("hooks", {})
@@ -127,19 +136,30 @@ def write_claude_hook(root: Path) -> Path:
     entries = hooks.get("SessionStart")
     if not isinstance(entries, list):
         entries = []
-    command = f"{HOOK_COMMAND} --format claude"
-    if not _claude_has_command(entries, command):
-        entries.append(
-            {
-                "matcher": "startup|resume|clear|compact",
-                "hooks": [{"type": "command", "command": command}],
-            }
-        )
-    hooks["SessionStart"] = entries
+    command = _hook_command(entry, "claude")
+    kept: list = []
+    for group in entries:
+        if not isinstance(group, dict) or not isinstance(group.get("hooks"), list):
+            kept.append(group)
+            continue
+        inner = group["hooks"]
+        other = [
+            hook for hook in inner
+            if not isinstance(hook, dict) or not _is_context_command(hook.get("command"), "claude")
+        ]
+        if other or not inner:
+            kept.append({**group, "hooks": other})
+    kept.append(
+        {
+            "matcher": "startup|resume|clear|compact",
+            "hooks": [{"type": "command", "command": command}],
+        }
+    )
+    hooks["SessionStart"] = kept
     return _dump_json(path, data)
 
 
-def write_cursor_hook(root: Path) -> Path:
+def write_cursor_hook(root: Path, entry: dict) -> Path:
     path = root / ".cursor" / "hooks.json"
     data = _read_json_object(path)
     if "version" not in data:
@@ -150,10 +170,13 @@ def write_cursor_hook(root: Path) -> Path:
     entries = hooks.get("sessionStart")
     if not isinstance(entries, list):
         entries = []
-    command = f"{HOOK_COMMAND} --format cursor"
-    if not any(isinstance(item, dict) and item.get("command") == command for item in entries):
-        entries.append({"command": command})
-    hooks["sessionStart"] = entries
+    command = _hook_command(entry, "cursor")
+    kept = [
+        hook for hook in entries
+        if not isinstance(hook, dict) or not _is_context_command(hook.get("command"), "cursor")
+    ]
+    kept.append({"command": command})
+    hooks["sessionStart"] = kept
     return _dump_json(path, data)
 
 
@@ -197,17 +220,23 @@ def _skill_text(body: str) -> str:
     )
 
 
-def _claude_has_command(entries: list, command: str) -> bool:
-    for entry in entries:
-        if not isinstance(entry, dict):
-            continue
-        inner = entry.get("hooks")
-        if not isinstance(inner, list):
-            continue
-        for hook in inner:
-            if isinstance(hook, dict) and hook.get("command") == command:
-                return True
-    return False
+def _is_context_command(command: object, fmt: str) -> bool:
+    if not isinstance(command, str):
+        return False
+    try:
+        arguments = shlex.split(command)
+    except ValueError:
+        return False
+    context = ["tinymem", "context", "--format", fmt]
+    if arguments == context:
+        return True  # Upgrade the legacy, unbound command.
+    return (
+        len(arguments) == 7
+        and arguments[0] == "env"
+        and arguments[3:] == context
+        and {arg.split("=", 1)[0] for arg in arguments[1:3] if "=" in arg}
+        == {"TINYMEM_DB", "TINYMEM_NAMESPACE"}
+    )
 
 
 def _read_json_object(path: Path) -> dict:
